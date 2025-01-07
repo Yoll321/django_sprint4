@@ -1,42 +1,26 @@
 from django import forms
 
-from blog.models import Post, Comment
-from django.contrib.auth import get_user_model
-
-
-User = get_user_model()
+from .models import Comment, Post, User
 
 
 class PostForm(forms.ModelForm):
-    """Форма для создания или обновления поста."""
-
     class Meta:
         model = Post
-        fields = (
-            'title',
-            'text',
-            'category',
-            'location',
-            'pub_date',
-        )
+        exclude = ('author',)
+        widgets = {
+            'pub_date': forms.DateTimeInput(
+                format='%Y-%m-%d %H:%M', attrs={'type': 'datetime-local'}
+            )
+        }
 
 
-class ProfileForm(forms.ModelForm):
-    """Форма для создания или обновления профиля."""
-
+class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = (
-            'username',
-            'first_name',
-            'last_name',
-            'email',
-        )
+        fields = ('username', 'first_name', 'last_name', 'email')
 
 
 class CommentForm(forms.ModelForm):
-    """Форма для написания комментария."""
-
     class Meta:
         model = Comment
         fields = ('text',)
