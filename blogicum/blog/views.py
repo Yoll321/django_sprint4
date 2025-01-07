@@ -7,12 +7,12 @@ from django.db.models.base import Model as Model
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import \
-    (CreateView, ListView, UpdateView, DetailView, DeleteView)
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+    (ListView, UpdateView, DetailView, DeleteView)
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import get_user_model
 from django.urls import reverse_lazy
 
-from .models import Post, Category, Comment
+from .models import Post, Comment, Category
 from .forms import PostForm, ProfileForm, CommentForm
 
 
@@ -58,18 +58,25 @@ class CategoryListView(ListView):
 
         return queryset.order_by('-pub_date')
 
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        slug = self.kwargs.get('category_slug')
+        context['category'] = get_object_or_404(Category, slug=slug)
 
-class PostCreateView(CreateView, LoginRequiredMixin):
+        return context
+
+
+@login_required
+def create_post(request):
     """Добавление поста."""
-
-    template_name = 'blog/create.html'
-    form_class = PostForm
-    success_url = reverse_lazy('blog:index')
-
-    def form_valid(self, form):
-        new_post = form.save(commit=False)
-        new_post.author = self.request.user
-        return super().form_valid(form)
+    form = PostForm(request.POST or None, files=request.FILES or None)
+    if form.is_valid():
+        post = form.save(commit=False)
+        post.author = request.user
+        post.save()
+        return redirect('blog:profile', request.user)
+    context = {'form': form}
+    return render(request, 'blog/create.html', context)
 
 
 class PostDetailView(DetailView):
@@ -83,11 +90,11 @@ class PostDetailView(DetailView):
         context['form'] = CommentForm()
         context['comments'] = self.object.comments.order_by('created_at')
         return context
-    
+
 
 @login_required
 def edit_post(request, post_id):
-    """Редактирует запись блога."""
+    """Редактирует пост."""
     post = get_object_or_404(Post, id=post_id)
     if request.user != post.author:
         return redirect('blog:post_detail', post_id)
@@ -126,6 +133,20 @@ class DeletePost(DeleteView, LoginRequiredMixin):
         context["form"] = PostForm(self.request.POST or None,
                                    instance=self.object)
         return context
+
+
+@login_required
+def delete_post(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    if post.author != request.user:
+        return redirect('blog:post_detail', pk)
+    if request.method == 'POST':
+        form = PostForm(request.POST or None, instance=post)
+        post.delete()
+        return redirect('blog:index')
+    form = PostForm(instance=post)
+    context = {'form': form}
+    return render(request, 'blog/create.html', context)
 
 
 class ProfileUpdateView(UpdateView):

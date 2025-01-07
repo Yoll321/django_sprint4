@@ -286,7 +286,8 @@ def _testget_context_item_by_class(
         context, cls: type, err_msg: str, inside_iter: bool = False
 ) -> KeyVal:
     """If `err_msg` is not empty, empty return value will
-    produce an AssertionError with the `err_msg` error message"""
+    produce an AssertionError with the `err_msg` error message
+    """
 
     def is_a_match(val: Any):
         if inside_iter:
@@ -327,7 +328,8 @@ def get_page_context_form(user_client: Client, page_url: str) -> KeyVal:
 def restore_cleaned_data(cleaned_data: dict) -> dict:
     """On validation id values of related fields
     are replaced by correspoinding objects, which fails subsequent validations.
-    This function restores related fields back to id values."""
+    This function restores related fields back to id values.
+    """
     cleaned_data_fixed = {
         k: v.id if isinstance(v, Model) else v for k, v in cleaned_data.items()
     }
